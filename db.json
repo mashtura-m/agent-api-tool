@@ -1,0 +1,72 @@
+{
+  "customers": [
+    {
+      "id": "cust-001",
+      "customer_name": "Rahim Uddin",
+      "msisdn": "01711234567",
+      "package_name": "Super Data 30",
+      "package_type": "prepaid",
+      "data_quota_mb": 30720,
+      "validity_days": 30,
+      "current_balance": 350,
+      "last_flexiload_date": "2026-04-20T10:30:00Z",
+      "last_trxid": "TRX20260501NEWXYZ",
+      "reported_issues": [
+        {
+          "issue_id": "ISS-0BF012E7",
+          "issue_type": "network",
+          "description": "No data service in Mirpur-10 area since 9am",
+          "status": "open",
+          "reported_at": "2026-05-01T11:18:51.768Z"
+        }
+      ]
+    },
+    {
+      "id": "cust-002",
+      "customer_name": "Fatema Begum",
+      "msisdn": "01812345678",
+      "package_name": "Talk More 7",
+      "package_type": "prepaid",
+      "data_quota_mb": 2048,
+      "validity_days": 7,
+      "current_balance": 55,
+      "last_flexiload_date": "2026-04-28T14:00:00Z",
+      "last_trxid": "TRX20260428140012B",
+      "reported_issues": []
+    },
+    {
+      "id": "cust-003",
+      "customer_name": "Karim Hassan",
+      "msisdn": "01911223344",
+      "package_name": "Postpaid Pro 500",
+      "package_type": "postpaid",
+      "data_quota_mb": 51200,
+      "validity_days": 30,
+      "current_balance": 0,
+      "last_flexiload_date": null,
+      "last_trxid": "TRX20260401090000C",
+      "reported_issues": [
+        {
+          "issue_id": "ISS-001",
+          "issue_type": "billing",
+          "description": "Overcharged on last bill cycle",
+          "status": "open",
+          "reported_at": "2026-04-15T08:22:00Z"
+        }
+      ]
+    },
+    {
+      "id": "cust-7727a0ce",
+      "customer_name": "Nadia Islam",
+      "msisdn": "01755667788",
+      "package_name": "Super Data 30",
+      "package_type": "prepaid",
+      "data_quota_mb": 30720,
+      "validity_days": 30,
+      "current_balance": 200,
+      "last_flexiload_date": null,
+      "last_trxid": null,
+      "reported_issues": []
+    }
+  ]
+}

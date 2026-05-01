@@ -1,0 +1,15 @@
+{
+  "name": "telco-api",
+  "version": "1.0.0",
+  "description": "Telco CRUD API for testing — Node.js + Express + JSON flat-file DB",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
