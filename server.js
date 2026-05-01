@@ -56,11 +56,11 @@ app.get("/customers", (req, res) => {
 
 // ─────────────────────────────────────────────
 // ROUTE: Get Single Customer
-// GET /customers/:id
+// GET /customers/:msisdn
 // ─────────────────────────────────────────────
-app.get("/customers/:id", (req, res) => {
+app.get("/customers/:msisdn", (req, res) => {
   const db = readDB();
-  const customer = findCustomer(db, req.params.id);
+  const customer = findCustomer(db, req.params.msisdn);
 
   if (!customer) {
     return res.status(404).json({ error: "Customer not found" });
@@ -123,15 +123,15 @@ app.post("/customers", (req, res) => {
 
 // ─────────────────────────────────────────────
 // ROUTE: Update Customer Details
-// PATCH /customers/:id
+// PATCH /customers/:msisdn
 // Body: any subset of updatable fields
 // Updatable: customer_name, package_name, package_type,
 //            data_quota_mb, validity_days, current_balance,
 //            last_flexiload_date, last_trxid
 // ─────────────────────────────────────────────
-app.patch("/customers/:id", (req, res) => {
+app.patch("/customers/:msisdn", (req, res) => {
   const db = readDB();
-  const customerIndex = db.customers.findIndex((c) => c.id === req.params.id);
+  const customerIndex = db.customers.findIndex((c) => c.msisdn === req.params.msisdn);
 
   if (customerIndex === -1) {
     return res.status(404).json({ error: "Customer not found" });
@@ -174,11 +174,11 @@ app.patch("/customers/:id", (req, res) => {
 
 // ─────────────────────────────────────────────
 // ROUTE: Log a Complaint / Report Issue
-// POST /customers/:id/issues
+// POST /customers/:msisdn/issues
 // Body: { issue_type, description }
 // issue_type: "billing" | "network" | "data" | "recharge" | "other"
 // ─────────────────────────────────────────────
-app.post("/customers/:id/issues", (req, res) => {
+app.post("/customers/:msisdn/issues", (req, res) => {
   const { issue_type, description } = req.body;
 
   if (!issue_type || !description) {
@@ -188,7 +188,7 @@ app.post("/customers/:id/issues", (req, res) => {
   }
 
   const db = readDB();
-  const customerIndex = db.customers.findIndex((c) => c.id === req.params.id);
+  const customerIndex = db.customers.findIndex((c) => c.msisdn === req.params.msisdn);
 
   if (customerIndex === -1) {
     return res.status(404).json({ error: "Customer not found" });
@@ -286,10 +286,10 @@ app.listen(PORT, () => {
   console.log(`📋 Routes:`);
   console.log(`   GET    /health`);
   console.log(`   GET    /customers`);
-  console.log(`   GET    /customers/:id`);
+  console.log(`   GET    /customers/:msisdn`);
   console.log(`   POST   /customers`);
-  console.log(`   PATCH  /customers/:id`);
-  console.log(`   DELETE /customers/:id`);
-  console.log(`   POST   /customers/:id/issues`);
-  console.log(`   PATCH  /customers/:id/issues/:issueId\n`);
+  console.log(`   PATCH  /customers/:msisdn`);
+  console.log(`   DELETE /customers/:msisdn`);
+  console.log(`   POST   /customers/:msisdn/issues`);
+  console.log(`   PATCH  /customers/:msisdn/issues/:issueId\n`);
 });
