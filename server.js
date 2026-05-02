@@ -69,7 +69,7 @@ app.get("/customers", (req, res) => {
   if (req.query.msisdn) {
     const customer = db.customers.find((c) => c.msisdn === req.query.msisdn);
     if (!customer) {
-      return res.status(404).json({ error: "Customer not found" });
+      return res.status(404).json({ error: "Customer not found" , msisdn: req.query.msisdn });
     }
     return res.json(customer);
   }
@@ -87,7 +87,7 @@ app.get("/customers/:msisdn", (req, res) => {
   const customer = db.customers.find((c) => c.msisdn === req.params.msisdn);
 
   if (!customer) {
-    return res.status(404).json({ error: "Customer not found" });
+    return res.status(404).json({ error: "Customer not found", msisdn: req.params.msisdn });
   }
 
   res.json(customer);
@@ -155,7 +155,7 @@ app.patch("/customers/:msisdn", (req, res) => {
   );
 
   if (customerIndex === -1) {
-    return res.status(404).json({ error: "Customer not found" });
+    return res.status(404).json({ error: "Customer not found", msisdn: req.params.msisdn });
   }
 
   const ALLOWED_FIELDS = [
@@ -222,7 +222,7 @@ app.get("/customers/:msisdn/issues", (req, res) => {
   const customer = db.customers.find((c) => c.msisdn === req.params.msisdn);
 
   if (!customer) {
-    return res.status(404).json({ error: "Customer not found" });
+    return res.status(404).json({ error: "Customer not found For Issues", msisdn: req.params.msisdn });
   }
 
   res.json({
@@ -242,7 +242,7 @@ app.get("/customers/:msisdn/issues/:issueId", (req, res) => {
   const customer = db.customers.find((c) => c.msisdn === req.params.msisdn);
 
   if (!customer) {
-    return res.status(404).json({ error: "Customer not found" });
+    return res.status(404).json({ error: "Customer not found", msisdn: req.params.msisdn });
   }
 
   const issue = customer.reported_issues.find(
@@ -346,7 +346,17 @@ app.patch("/customers/:msisdn/issues/:issueId", (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
-
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+  next(err);
+});
+app.use((req, res, next) => {
+  console.log('Body:', JSON.stringify(req.body));
+  console.log('Raw:', req.headers['content-type']);
+  next();
+});
 // ─────────────────────────────────────────────
 // Start Server
 // ─────────────────────────────────────────────
