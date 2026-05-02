@@ -18,6 +18,14 @@ Set a custom port:
 PORT=8080 node server.js
 ```
 
+### Features
+
+- **Request Logging**: All incoming requests are logged to the console with timestamps, method, path, content-type, and body (if present).
+- **CORS Support**: Enabled for cross-origin requests.
+- **Auto DB Creation**: `db.json` is automatically created if missing.
+- **MSISDN Validation**: Input validation for mobile numbers to prevent invalid data.
+- **Public Accessibility**: Server binds to `0.0.0.0` for external access.
+
 ---
 
 ## Database Schema
