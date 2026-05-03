@@ -1,0 +1,573 @@
+openapi: 3.0.3
+info:
+  title: Telco CRUD API
+  version: 1.0.0
+  description: |
+    Telco CRUD API for managing customers and customer-reported issues.
+    Stack: Node.js + Express + JSON flat-file DB.
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: System
+    description: Health and API index endpoints
+  - name: Customers
+    description: Customer CRUD operations
+  - name: Issues
+    description: Customer issue management
+
+paths:
+  /:
+    get:
+      tags: [System]
+      summary: Get API index
+      operationId: getApiIndex
+      responses:
+        "200":
+          description: API metadata and endpoint list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiIndex"
+
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        "200":
+          description: API health status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /customers:
+    get:
+      tags: [Customers]
+      summary: List all customers or get one customer by MSISDN query
+      operationId: listCustomers
+      parameters:
+        - name: msisdn
+          in: query
+          required: false
+          description: Optional MSISDN to return a single customer
+          schema:
+            type: string
+            pattern: "^[0-9]{10,15}$"
+            example: "01712345678"
+      responses:
+        "200":
+          description: Customer list or single customer
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/CustomerListResponse"
+                  - $ref: "#/components/schemas/Customer"
+        "400":
+          $ref: "#/components/responses/InvalidMSISDN"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+
+    post:
+      tags: [Customers]
+      summary: Create a customer
+      operationId: createCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerRequest"
+            example:
+              customer_name: John Doe
+              msisdn: "01712345678"
+              package_name: Premium Pack
+              package_type: prepaid
+              data_quota_mb: 2048
+              validity_days: 30
+              current_balance: 100
+      responses:
+        "201":
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateCustomerResponse"
+        "400":
+          description: Missing required fields or invalid MSISDN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: MSISDN already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /customers/{msisdn}:
+    parameters:
+      - $ref: "#/components/parameters/MSISDN"
+
+    get:
+      tags: [Customers]
+      summary: Get customer by MSISDN
+      operationId: getCustomerByMSISDN
+      responses:
+        "200":
+          description: Customer found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "400":
+          $ref: "#/components/responses/InvalidMSISDN"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+
+    patch:
+      tags: [Customers]
+      summary: Update customer details
+      operationId: updateCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerRequest"
+            example:
+              package_name: Updated Pack
+              current_balance: 200
+      responses:
+        "200":
+          description: Customer updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateCustomerResponse"
+        "400":
+          description: Invalid MSISDN or no valid update fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+
+    delete:
+      tags: [Customers]
+      summary: Delete customer
+      operationId: deleteCustomer
+      responses:
+        "200":
+          description: Customer deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteCustomerResponse"
+        "400":
+          $ref: "#/components/responses/InvalidMSISDN"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+
+  /customers/{msisdn}/issues:
+    parameters:
+      - $ref: "#/components/parameters/MSISDN"
+
+    get:
+      tags: [Issues]
+      summary: Get all issues for a customer
+      operationId: listCustomerIssues
+      responses:
+        "200":
+          description: Customer issues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerIssuesResponse"
+        "400":
+          $ref: "#/components/responses/InvalidMSISDN"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+
+    post:
+      tags: [Issues]
+      summary: Log a customer issue
+      operationId: createCustomerIssue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIssueRequest"
+            example:
+              issue_type: network
+              description: No signal in my area
+      responses:
+        "201":
+          description: Issue logged successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateIssueResponse"
+        "400":
+          description: Missing issue fields or invalid issue type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          $ref: "#/components/responses/CustomerNotFound"
+
+  /customers/{msisdn}/issues/{issueId}:
+    parameters:
+      - $ref: "#/components/parameters/MSISDN"
+      - $ref: "#/components/parameters/IssueId"
+
+    get:
+      tags: [Issues]
+      summary: Get single issue
+      operationId: getCustomerIssue
+      responses:
+        "200":
+          description: Issue found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Issue"
+        "400":
+          $ref: "#/components/responses/InvalidMSISDN"
+        "404":
+          description: Customer or issue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      tags: [Issues]
+      summary: Update issue status
+      operationId: updateCustomerIssueStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateIssueStatusRequest"
+            example:
+              status: resolved
+      responses:
+        "200":
+          description: Issue status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateIssueStatusResponse"
+        "400":
+          description: Invalid MSISDN or invalid status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Customer or issue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  parameters:
+    MSISDN:
+      name: msisdn
+      in: path
+      required: true
+      description: Customer mobile number
+      schema:
+        type: string
+        pattern: "^[0-9]{10,15}$"
+        example: "01712345678"
+
+    IssueId:
+      name: issueId
+      in: path
+      required: true
+      description: Issue identifier
+      schema:
+        type: string
+        example: ISS-ABC123
+
+  responses:
+    InvalidMSISDN:
+      description: Invalid MSISDN format
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Invalid MSISDN format
+
+    CustomerNotFound:
+      description: Customer not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Customer not found
+            msisdn: "01712345678"
+
+  schemas:
+    ApiIndex:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Telco CRUD API
+        version:
+          type: string
+          example: 1.0.0
+        status:
+          type: string
+          example: running
+        endpoints:
+          type: array
+          items:
+            type: string
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        timestamp:
+          type: string
+          format: date-time
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cust-a1b2c3d4
+        customer_name:
+          type: string
+          example: John Doe
+        msisdn:
+          type: string
+          pattern: "^[0-9]{10,15}$"
+          example: "01712345678"
+        package_name:
+          type: string
+          example: Premium Pack
+        package_type:
+          type: string
+          example: prepaid
+        data_quota_mb:
+          type: integer
+          example: 2048
+        validity_days:
+          type: integer
+          example: 30
+        current_balance:
+          type: number
+          example: 100
+        last_flexiload_date:
+          type: string
+          nullable: true
+          example: null
+        last_trxid:
+          type: string
+          nullable: true
+          example: null
+        reported_issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/Issue"
+
+    CreateCustomerRequest:
+      type: object
+      required:
+        - customer_name
+        - msisdn
+        - package_name
+      properties:
+        customer_name:
+          type: string
+        msisdn:
+          type: string
+          pattern: "^[0-9]{10,15}$"
+        package_name:
+          type: string
+        package_type:
+          type: string
+          default: prepaid
+        data_quota_mb:
+          type: integer
+          default: 1024
+        validity_days:
+          type: integer
+          default: 30
+        current_balance:
+          type: number
+          default: 0
+
+    UpdateCustomerRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        customer_name:
+          type: string
+        package_name:
+          type: string
+        package_type:
+          type: string
+        data_quota_mb:
+          type: integer
+        validity_days:
+          type: integer
+        current_balance:
+          type: number
+        last_flexiload_date:
+          type: string
+          nullable: true
+        last_trxid:
+          type: string
+          nullable: true
+
+    CustomerListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 1
+        customers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Customer"
+
+    CreateCustomerResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Customer created
+        customer:
+          $ref: "#/components/schemas/Customer"
+
+    UpdateCustomerResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Customer updated
+        customer:
+          $ref: "#/components/schemas/Customer"
+
+    DeleteCustomerResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Customer deleted
+        customer:
+          $ref: "#/components/schemas/Customer"
+
+    Issue:
+      type: object
+      properties:
+        issue_id:
+          type: string
+          example: ISS-ABC123
+        issue_type:
+          type: string
+          enum: [billing, network, data, recharge, other]
+          example: network
+        description:
+          type: string
+          example: No signal in my area
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+          example: open
+        reported_at:
+          type: string
+          format: date-time
+
+    CustomerIssuesResponse:
+      type: object
+      properties:
+        msisdn:
+          type: string
+          example: "01712345678"
+        customer_name:
+          type: string
+          example: John Doe
+        total_issues:
+          type: integer
+          example: 1
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/Issue"
+
+    CreateIssueRequest:
+      type: object
+      required:
+        - issue_type
+        - description
+      properties:
+        issue_type:
+          type: string
+          enum: [billing, network, data, recharge, other]
+        description:
+          type: string
+
+    CreateIssueResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Issue logged successfully
+        issue:
+          $ref: "#/components/schemas/Issue"
+        msisdn:
+          type: string
+          example: "01712345678"
+        customer_name:
+          type: string
+          example: John Doe
+
+    UpdateIssueStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+
+    UpdateIssueStatusResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Issue status updated
+        issue:
+          $ref: "#/components/schemas/Issue"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Customer not found
+        msisdn:
+          type: string
+          example: "01712345678"
