@@ -1,0 +1,678 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Telco CRUD API</title>
+    <style type="text/css">
+      body {
+      	font-family: Trebuchet MS, sans-serif;
+      	font-size: 15px;
+      	color: #444;
+      	margin-right: 24px;
+      }
+      
+      h1	{
+      	font-size: 25px;
+      }
+      h2	{
+      	font-size: 20px;
+      }
+      h3	{
+      	font-size: 16px;
+      	font-weight: bold;
+      }
+      hr	{
+      	height: 1px;
+      	border: 0;
+      	color: #ddd;
+      	background-color: #ddd;
+      }
+      
+      .app-desc {
+        clear: both;
+        margin-left: 20px;
+      }
+      .param-name {
+        width: 100%;
+      }
+      .license-info {
+        margin-left: 20px;
+      }
+      
+      .license-url {
+        margin-left: 20px;
+      }
+      
+      .model {
+        margin: 0 0 0px 20px;
+      }
+      
+      .method {
+        margin-left: 20px;
+      }
+      
+      .method-notes	{
+      	margin: 10px 0 20px 0;
+      	font-size: 90%;
+      	color: #555;
+      }
+      
+      pre {
+        padding: 10px;
+        margin-bottom: 2px;
+      }
+      
+      .http-method {
+       text-transform: uppercase;
+      }
+      
+      pre.get {
+        background-color: #0f6ab4;
+      }
+      
+      pre.post {
+        background-color: #10a54a;
+      }
+      
+      pre.put {
+        background-color: #c5862b;
+      }
+      
+      pre.delete {
+        background-color: #a41e22;
+      }
+      
+      .huge	{
+      	color: #fff;
+      }
+      
+      pre.example {
+        background-color: #f3f3f3;
+        padding: 10px;
+        border: 1px solid #ddd;
+      }
+      
+      code {
+        white-space: pre;
+      }
+      
+      .nickname {
+        font-weight: bold;
+      }
+      
+      .method-path {
+        font-size: 1.5em;
+        background-color: #0f6ab4;
+      }
+      
+      .up {
+        float:right;
+      }
+      
+      .parameter {
+        width: 500px;
+      }
+      
+      .param {
+        width: 500px;
+        padding: 10px 0 0 20px;
+        font-weight: bold;
+      }
+      
+      .param-desc {
+        width: 700px;
+        padding: 0 0 0 20px;
+        color: #777;
+      }
+      
+      .param-type {
+        font-style: italic;
+      }
+      
+      .param-enum-header {
+      width: 700px;
+      padding: 0 0 0 60px;
+      color: #777;
+      font-weight: bold;
+      }
+      
+      .param-enum {
+      width: 700px;
+      padding: 0 0 0 80px;
+      color: #777;
+      font-style: italic;
+      }
+      
+      .field-label {
+        padding: 0;
+        margin: 0;
+        clear: both;
+      }
+      
+      .field-items	{
+      	padding: 0 0 15px 0;
+      	margin-bottom: 15px;
+      }
+      
+      .return-type {
+        clear: both;
+        padding-bottom: 10px;
+      }
+      
+      .param-header {
+        font-weight: bold;
+      }
+      
+      .method-tags {
+        text-align: right;
+      }
+      
+      .method-tag {
+        background: none repeat scroll 0% 0% #24A600;
+        border-radius: 3px;
+        padding: 2px 10px;
+        margin: 2px;
+        color: #FFF;
+        display: inline-block;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+  <h1>Telco CRUD API</h1>
+    <div class="app-desc">CRUD API for customers, package updates, and issue management.</div>
+    <div class="app-desc">More information: <a href="https://helloreverb.com">https://helloreverb.com</a></div>
+    <div class="app-desc">Contact Info: <a href="hello@helloreverb.com">hello@helloreverb.com</a></div>
+    <div class="app-desc">Version: 1.0.0</div>
+    <div class="app-desc">BasePath:/mashturarevechatorga/STC/1.0.0</div>
+    <div class="license-info">All rights reserved</div>
+    <div class="license-url">http://apache.org/licenses/LICENSE-2.0.html</div>
+  <h2>Access</h2>
+
+  <h2><a name="__Methods">Methods</a></h2>
+  [ Jump to <a href="#__Models">Models</a> ]
+
+  <h3>Table of Contents </h3>
+  <div class="method-summary"></div>
+  <h4><a href="#Default">Default</a></h4>
+  <ul>
+  <li><a href="#createCustomer"><code><span class="http-method">post</span> /customers</code></a></li>
+  <li><a href="#createCustomerIssue"><code><span class="http-method">post</span> /customers/{msisdn}/issues</code></a></li>
+  <li><a href="#deleteCustomer"><code><span class="http-method">delete</span> /customers/{msisdn}</code></a></li>
+  <li><a href="#getCustomerByMsisdnPath"><code><span class="http-method">get</span> /customers/{msisdn}</code></a></li>
+  <li><a href="#getCustomerIssueById"><code><span class="http-method">get</span> /customers/{msisdn}/issues/{issueId}</code></a></li>
+  <li><a href="#getCustomerIssues"><code><span class="http-method">get</span> /customers/{msisdn}/issues</code></a></li>
+  <li><a href="#getCustomers"><code><span class="http-method">get</span> /customers</code></a></li>
+  <li><a href="#healthCheck"><code><span class="http-method">get</span> /health</code></a></li>
+  <li><a href="#updateCustomer"><code><span class="http-method">patch</span> /customers/{msisdn}</code></a></li>
+  <li><a href="#updateIssueStatus"><code><span class="http-method">patch</span> /customers/{msisdn}/issues/{issueId}</code></a></li>
+  </ul>
+
+  <h1><a name="Default">Default</a></h1>
+  <div class="method"><a name="createCustomer"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="post"><code class="huge"><span class="http-method">post</span> /customers</code></pre></div>
+    <div class="method-summary">Create customer (<span class="nickname">createCustomer</span>)</div>
+    <div class="method-notes"></div>
+
+
+    <h3 class="field-label">Consumes</h3>
+    This API call consumes the following media types via the <span class="header">Content-Type</span> request header:
+    <ul>
+      <li><code>application/json</code></li>
+    </ul>
+
+    <h3 class="field-label">Request body</h3>
+    <div class="field-items">
+      <div class="param">body <a href="#CreateCustomer">CreateCustomer</a> (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Body Parameter</span> &mdash;  </div>
+            <div class="param-desc"><span class="param-type">example: <code>{
+  &quot;customer_name&quot; : &quot;{{customer_name}}&quot;,
+  &quot;msisdn&quot; : &quot;{{msisdn}}&quot;,
+  &quot;package_name&quot; : &quot;{{package_name}}&quot;,
+  &quot;package_type&quot; : &quot;{{package_type}}&quot;,
+  &quot;data_quota_mb&quot; : &quot;{{data_quota_mb}}&quot;,
+  &quot;validity_days&quot; : &quot;{{validity_days}}&quot;,
+  &quot;current_balance&quot; : &quot;{{current_balance}}&quot;
+}</code></span></div>    </div>  <!-- field-items -->
+
+
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">201</h4>
+    Customer created
+        <a href="#"></a>
+    <h4 class="field-label">400</h4>
+    Invalid request
+        <a href="#"></a>
+    <h4 class="field-label">409</h4>
+    MSISDN already registered
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="createCustomerIssue"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="post"><code class="huge"><span class="http-method">post</span> /customers/{msisdn}/issues</code></pre></div>
+    <div class="method-summary">Log a new customer issue (<span class="nickname">createCustomerIssue</span>)</div>
+    <div class="method-notes"></div>
+
+    <h3 class="field-label">Path parameters</h3>
+    <div class="field-items">
+      <div class="param">msisdn (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Dynamic customer phone number / MSISDN </div>    </div>  <!-- field-items -->
+
+    <h3 class="field-label">Consumes</h3>
+    This API call consumes the following media types via the <span class="header">Content-Type</span> request header:
+    <ul>
+      <li><code>application/json</code></li>
+    </ul>
+
+    <h3 class="field-label">Request body</h3>
+    <div class="field-items">
+      <div class="param">body <a href="#CreateIssue">CreateIssue</a> (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Body Parameter</span> &mdash;  </div>
+            <div class="param-desc"><span class="param-type">example: <code>{
+  &quot;issue_type&quot; : &quot;{{issue_type}}&quot;,
+  &quot;description&quot; : &quot;{{description}}&quot;
+}</code></span></div>    </div>  <!-- field-items -->
+
+
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">201</h4>
+    Issue logged
+        <a href="#"></a>
+    <h4 class="field-label">400</h4>
+    Invalid issue request
+        <a href="#"></a>
+    <h4 class="field-label">404</h4>
+    Customer not found
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="deleteCustomer"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="delete"><code class="huge"><span class="http-method">delete</span> /customers/{msisdn}</code></pre></div>
+    <div class="method-summary">Delete customer (<span class="nickname">deleteCustomer</span>)</div>
+    <div class="method-notes"></div>
+
+    <h3 class="field-label">Path parameters</h3>
+    <div class="field-items">
+      <div class="param">msisdn (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Dynamic customer phone number / MSISDN </div>    </div>  <!-- field-items -->
+
+
+
+
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    Customer deleted
+        <a href="#"></a>
+    <h4 class="field-label">400</h4>
+    Invalid MSISDN
+        <a href="#"></a>
+    <h4 class="field-label">404</h4>
+    Customer not found
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="getCustomerByMsisdnPath"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="get"><code class="huge"><span class="http-method">get</span> /customers/{msisdn}</code></pre></div>
+    <div class="method-summary">Get customer by MSISDN path (<span class="nickname">getCustomerByMsisdnPath</span>)</div>
+    <div class="method-notes"></div>
+
+    <h3 class="field-label">Path parameters</h3>
+    <div class="field-items">
+      <div class="param">msisdn (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Dynamic customer phone number / MSISDN </div>    </div>  <!-- field-items -->
+
+
+
+
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    Customer returned
+        <a href="#"></a>
+    <h4 class="field-label">400</h4>
+    Invalid MSISDN
+        <a href="#"></a>
+    <h4 class="field-label">404</h4>
+    Customer not found
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="getCustomerIssueById"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="get"><code class="huge"><span class="http-method">get</span> /customers/{msisdn}/issues/{issueId}</code></pre></div>
+    <div class="method-summary">Get single issue (<span class="nickname">getCustomerIssueById</span>)</div>
+    <div class="method-notes"></div>
+
+    <h3 class="field-label">Path parameters</h3>
+    <div class="field-items">
+      <div class="param">msisdn (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Dynamic customer phone number / MSISDN </div>      <div class="param">issueId (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Dynamic issue ID </div>    </div>  <!-- field-items -->
+
+
+
+
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    Issue returned
+        <a href="#"></a>
+    <h4 class="field-label">400</h4>
+    Invalid MSISDN
+        <a href="#"></a>
+    <h4 class="field-label">404</h4>
+    Customer or issue not found
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="getCustomerIssues"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="get"><code class="huge"><span class="http-method">get</span> /customers/{msisdn}/issues</code></pre></div>
+    <div class="method-summary">Get all issues for a customer (<span class="nickname">getCustomerIssues</span>)</div>
+    <div class="method-notes"></div>
+
+    <h3 class="field-label">Path parameters</h3>
+    <div class="field-items">
+      <div class="param">msisdn (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Dynamic customer phone number / MSISDN </div>    </div>  <!-- field-items -->
+
+
+
+
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    Customer issues returned
+        <a href="#"></a>
+    <h4 class="field-label">400</h4>
+    Invalid MSISDN
+        <a href="#"></a>
+    <h4 class="field-label">404</h4>
+    Customer not found
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="getCustomers"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="get"><code class="huge"><span class="http-method">get</span> /customers</code></pre></div>
+    <div class="method-summary">Get all customers or customer by MSISDN (<span class="nickname">getCustomers</span>)</div>
+    <div class="method-notes"></div>
+
+
+
+
+
+    <h3 class="field-label">Query parameters</h3>
+    <div class="field-items">
+      <div class="param">msisdn (optional)</div>
+      
+            <div class="param-desc"><span class="param-type">Query Parameter</span> &mdash; Dynamic customer phone number </div>    </div>  <!-- field-items -->
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    Customer data returned
+        <a href="#"></a>
+    <h4 class="field-label">400</h4>
+    Invalid MSISDN
+        <a href="#"></a>
+    <h4 class="field-label">404</h4>
+    Customer not found
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="healthCheck"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="get"><code class="huge"><span class="http-method">get</span> /health</code></pre></div>
+    <div class="method-summary">Health check (<span class="nickname">healthCheck</span>)</div>
+    <div class="method-notes"></div>
+
+
+
+
+
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    API is running
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="updateCustomer"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="patch"><code class="huge"><span class="http-method">patch</span> /customers/{msisdn}</code></pre></div>
+    <div class="method-summary">Update customer package/account details (<span class="nickname">updateCustomer</span>)</div>
+    <div class="method-notes"></div>
+
+    <h3 class="field-label">Path parameters</h3>
+    <div class="field-items">
+      <div class="param">msisdn (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Dynamic customer phone number / MSISDN </div>    </div>  <!-- field-items -->
+
+    <h3 class="field-label">Consumes</h3>
+    This API call consumes the following media types via the <span class="header">Content-Type</span> request header:
+    <ul>
+      <li><code>application/json</code></li>
+    </ul>
+
+    <h3 class="field-label">Request body</h3>
+    <div class="field-items">
+      <div class="param">body <a href="#UpdateCustomer">UpdateCustomer</a> (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Body Parameter</span> &mdash;  </div>
+            <div class="param-desc"><span class="param-type">example: <code>{
+  &quot;customer_name&quot; : &quot;{{customer_name}}&quot;,
+  &quot;package_name&quot; : &quot;{{package_name}}&quot;,
+  &quot;package_type&quot; : &quot;{{package_type}}&quot;,
+  &quot;data_quota_mb&quot; : &quot;{{data_quota_mb}}&quot;,
+  &quot;validity_days&quot; : &quot;{{validity_days}}&quot;,
+  &quot;current_balance&quot; : &quot;{{current_balance}}&quot;,
+  &quot;last_flexiload_date&quot; : &quot;{{last_flexiload_date}}&quot;,
+  &quot;last_trxid&quot; : &quot;{{last_trxid}}&quot;
+}</code></span></div>    </div>  <!-- field-items -->
+
+
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    Customer updated
+        <a href="#"></a>
+    <h4 class="field-label">400</h4>
+    Invalid request or no valid fields
+        <a href="#"></a>
+    <h4 class="field-label">404</h4>
+    Customer not found
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+  <div class="method"><a name="updateIssueStatus"></a>
+    <div class="method-path">
+    <a class="up" href="#__Methods">Up</a>
+    <pre class="patch"><code class="huge"><span class="http-method">patch</span> /customers/{msisdn}/issues/{issueId}</code></pre></div>
+    <div class="method-summary">Update issue status (<span class="nickname">updateIssueStatus</span>)</div>
+    <div class="method-notes"></div>
+
+    <h3 class="field-label">Path parameters</h3>
+    <div class="field-items">
+      <div class="param">msisdn (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Dynamic customer phone number / MSISDN </div>      <div class="param">issueId (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Path Parameter</span> &mdash; Dynamic issue ID </div>    </div>  <!-- field-items -->
+
+    <h3 class="field-label">Consumes</h3>
+    This API call consumes the following media types via the <span class="header">Content-Type</span> request header:
+    <ul>
+      <li><code>application/json</code></li>
+    </ul>
+
+    <h3 class="field-label">Request body</h3>
+    <div class="field-items">
+      <div class="param">body <a href="#UpdateIssueStatus">UpdateIssueStatus</a> (required)</div>
+      
+            <div class="param-desc"><span class="param-type">Body Parameter</span> &mdash;  </div>
+            <div class="param-desc"><span class="param-type">example: <code>{
+  &quot;status&quot; : &quot;{{status}}&quot;
+}</code></span></div>    </div>  <!-- field-items -->
+
+
+
+
+
+    <!--Todo: process Response Object and its headers, schema, examples -->
+
+
+
+    <h3 class="field-label">Responses</h3>
+    <h4 class="field-label">200</h4>
+    Issue status updated
+        <a href="#"></a>
+    <h4 class="field-label">400</h4>
+    Invalid status
+        <a href="#"></a>
+    <h4 class="field-label">404</h4>
+    Customer or issue not found
+        <a href="#"></a>
+  </div> <!-- method -->
+  <hr/>
+
+  <h2><a name="__Models">Models</a></h2>
+  [ Jump to <a href="#__Methods">Methods</a> ]
+
+  <h3>Table of Contents</h3>
+  <ol>
+    <li><a href="#CreateCustomer"><code>CreateCustomer</code></a></li>
+    <li><a href="#CreateIssue"><code>CreateIssue</code></a></li>
+    <li><a href="#UpdateCustomer"><code>UpdateCustomer</code></a></li>
+    <li><a href="#UpdateIssueStatus"><code>UpdateIssueStatus</code></a></li>
+  </ol>
+
+  <div class="model">
+    <h3><a name="CreateCustomer"><code>CreateCustomer</code></a> <a class="up" href="#__Models">Up</a></h3>
+    
+    <div class="field-items">
+      <div class="param">customer_name </div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">msisdn </div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">package_name </div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">package_type (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+        <div class="param-enum-header">Enum:</div>
+        <div class="param-enum">prepaid</div><div class="param-enum">postpaid</div>
+<div class="param">data_quota_mb (optional)</div><div class="param-desc"><span class="param-type"><a href="#BigDecimal">BigDecimal</a></span>  </div>
+<div class="param">validity_days (optional)</div><div class="param-desc"><span class="param-type"><a href="#BigDecimal">BigDecimal</a></span>  </div>
+<div class="param">current_balance (optional)</div><div class="param-desc"><span class="param-type"><a href="#BigDecimal">BigDecimal</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="CreateIssue"><code>CreateIssue</code></a> <a class="up" href="#__Models">Up</a></h3>
+    
+    <div class="field-items">
+      <div class="param">issue_type </div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+        <div class="param-enum-header">Enum:</div>
+        <div class="param-enum">billing</div><div class="param-enum">network</div><div class="param-enum">data</div><div class="param-enum">recharge</div><div class="param-enum">other</div>
+<div class="param">description </div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="UpdateCustomer"><code>UpdateCustomer</code></a> <a class="up" href="#__Models">Up</a></h3>
+    
+    <div class="field-items">
+      <div class="param">customer_name (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">package_name (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">package_type (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+        <div class="param-enum-header">Enum:</div>
+        <div class="param-enum">prepaid</div><div class="param-enum">postpaid</div>
+<div class="param">data_quota_mb (optional)</div><div class="param-desc"><span class="param-type"><a href="#BigDecimal">BigDecimal</a></span>  </div>
+<div class="param">validity_days (optional)</div><div class="param-desc"><span class="param-type"><a href="#BigDecimal">BigDecimal</a></span>  </div>
+<div class="param">current_balance (optional)</div><div class="param-desc"><span class="param-type"><a href="#BigDecimal">BigDecimal</a></span>  </div>
+<div class="param">last_flexiload_date (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+<div class="param">last_trxid (optional)</div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+    </div>  <!-- field-items -->
+  </div>
+  <div class="model">
+    <h3><a name="UpdateIssueStatus"><code>UpdateIssueStatus</code></a> <a class="up" href="#__Models">Up</a></h3>
+    
+    <div class="field-items">
+      <div class="param">status </div><div class="param-desc"><span class="param-type"><a href="#string">String</a></span>  </div>
+        <div class="param-enum-header">Enum:</div>
+        <div class="param-enum">open</div><div class="param-enum">in_progress</div><div class="param-enum">resolved</div><div class="param-enum">closed</div>
+    </div>  <!-- field-items -->
+  </div>
+  </body>
+</html>
