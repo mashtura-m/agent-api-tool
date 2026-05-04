@@ -1,155 +1,310 @@
 /**
- * Telco CRUD API
- * Stack: Node.js + Express + JSON flat-file DB (drop-in ready, no DB install needed)
- * Hand this folder to Engineering — run `npm install` then `node server.js`
+ * Unified Telco CRM + Ticketing API
+ * ─────────────────────────────────────────────────────────────
+ * Stack:
+ *  - Node.js
+ *  - Express
+ *  - JSON flat-file persistence
+ *  - Swagger OpenAPI
  *
- * Fixes applied:
- *  1. Middleware order fixed — logger first, error handler before 404, 404 fallback last
- *  2. readDB() now auto-creates db.json if missing (no crash on first run)
- *  3. CORS headers added (install: npm install cors)
- *  4. MSISDN input validation added to all :msisdn routes
- *  5. app.listen binds to 0.0.0.0 for public accessibility
+ * Features:
+ *  - Customer CRUD
+ *  - Ticket CRUD
+ *  - SOA-compatible ticket endpoint
+ *  - Ticket category catalog
+ *  - Centralized DB layer
+ *  - Structured validation
+ *  - Middleware ordering fixed
+ *  - Consistent response model
+ *  - Production-grade error handling
+ *  - Single source of truth DB
+ *
+ * Run:
+ *   npm install express cors swagger-ui-express
+ *   node server.js
  */
 
 const express = require("express");
-const cors = require("cors");          // npm install cors
+const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
-const { randomUUID } = require("crypto");
+const crypto = require("crypto");
+const swaggerUi = require("swagger-ui-express");
 
 const app = express();
+const PORT = process.env.PORT || 8000;
 
-// ─────────────────────────────────────────────
-// Global Middleware (must be FIRST)
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Middleware
+// ─────────────────────────────────────────────────────────────
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 
-// Request logger — runs before every route
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log("Content-Type:", req.headers["content-type"]);
-  if (Object.keys(req.body || {}).length) {
-    console.log("Body:", JSON.stringify(req.body));
-  }
+  console.log(
+    `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`
+  );
   next();
 });
 
-// ─────────────────────────────────────────────
-// DB Helpers
-// ─────────────────────────────────────────────
-const DB_PATH = path.join(__dirname, "db.json");
+// ─────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────
+const DB_DIR = path.join(__dirname, "db");
+const DB_FILE = path.join(DB_DIR, "database.json");
 
-function readDB() {
-  // FIX: auto-create db.json if it doesn't exist — prevents crash on first run
-  if (!fs.existsSync(DB_PATH)) {
-    const empty = { customers: [] };
-    writeDB(empty);
-    return empty;
+const VALID_TICKET_STATUS = [
+  "Open",
+  "InProgress",
+  "Resolved",
+  "Closed",
+  "Cancelled",
+];
+
+const VALID_PRIORITY = ["Low", "Medium", "High", "Critical"];
+
+const VALID_ISSUE_TYPES = [
+  "billing",
+  "network",
+  "data",
+  "recharge",
+  "other",
+];
+
+// ─────────────────────────────────────────────────────────────
+// Seed Data
+// ─────────────────────────────────────────────────────────────
+const seedDatabase = {
+  customers: [
+    {
+      id: "cust-001",
+      customer_name: "Rahim Uddin",
+      msisdn: "01711234567",
+      package_name: "Go 12",
+      package_type: "prepaid",
+      data_quota_mb: 30720,
+      validity_days: 30,
+      current_balance: 350,
+      last_flexiload_date: "2026-04-20T10:30:00Z",
+      last_trxid: "TRX20260501NEWXYZ",
+      ticket_ids: ["TT105368"],
+    },
+    {
+      id: "cust-003",
+      customer_name: "Karim Hassan",
+      msisdn: "01911223344",
+      package_name: "Postpaid Pro 500",
+      package_type: "postpaid",
+      data_quota_mb: 51200,
+      validity_days: 30,
+      current_balance: 0,
+      last_flexiload_date: null,
+      last_trxid: "TRX20260401090000C",
+      ticket_ids: ["TT193426", "TT536791"],
+    },
+  ],
+
+  tickets: [
+    {
+      ticketNo: "TT105368",
+      ticketType: "Complaint",
+      service: "Fixed",
+      category: "Network Issue",
+      subCat: "TC0110211613",
+      subCatName: "Reachability",
+      title: "Chatbot Ticket",
+      summary: "No data service in Mirpur-10 area since 9am",
+      priority: "High",
+      status: "Open",
+      msisdn: "01711234567",
+      contractId: "cust-001",
+      callBackNumber: "01711234567",
+      description: "No data service in Mirpur-10 area since 9am",
+      notes: [],
+      attachments: [],
+      createdDate: "2026-05-01T11:00:00.000Z",
+      modifiedDate: "2026-05-01T11:18:51.768Z",
+    },
+  ],
+
+  categories: {
+    type: [
+      {
+        label: "Complaint",
+        service: [
+          {
+            label: "Mobility",
+            name: "Mobility",
+            category: [
+              {
+                label: "Billing",
+                subCategory: [
+                  {
+                    id: "TC0220311001",
+                    label: "Overcharge",
+                    msidn: "Y",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
+// Bootstrap DB
+// ─────────────────────────────────────────────────────────────
+function initializeDatabase() {
+  if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
   }
+
+  if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify(seedDatabase, null, 2));
+    console.log("Database initialized");
+  }
+}
+
+initializeDatabase();
+
+// ─────────────────────────────────────────────────────────────
+// DB Layer
+// ─────────────────────────────────────────────────────────────
+function readDB() {
   try {
-    const raw = fs.readFileSync(DB_PATH, "utf8");
-    return JSON.parse(raw);
+    return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
   } catch (err) {
-    console.error("Failed to read/parse db.json:", err.message);
-    return { customers: [] };
+    console.error("DB read failure:", err.message);
+    return {
+      customers: [],
+      tickets: [],
+      categories: { type: [] },
+    };
   }
 }
 
 function writeDB(data) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf8");
+  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 }
 
-// ─────────────────────────────────────────────
-// Validation Helper
-// ─────────────────────────────────────────────
-// FIX: validate MSISDN format to block path traversal / junk input
+const db = {
+  getCustomers() {
+    return readDB().customers;
+  },
+
+  getTickets() {
+    return readDB().tickets;
+  },
+
+  getCategories() {
+    return readDB().categories;
+  },
+
+  save(database) {
+    writeDB(database);
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────
 function isValidMSISDN(msisdn) {
-  return true///^[0-9]{10,15}$/.test(msisdn);
+  return /^[0-9]{11,15}$/.test(msisdn);
 }
 
-// ─────────────────────────────────────────────
-// ROUTE: API Index
-// GET /
-// ─────────────────────────────────────────────
-app.get("/", (req, res) => {
+function generateCustomerId() {
+  return `cust-${crypto.randomUUID().split("-")[0]}`;
+}
+
+function generateTicketNo() {
+  return `TT${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
+function now() {
+  return new Date().toISOString();
+}
+
+function findCustomerByMSISDN(msisdn) {
+  return db.getCustomers().find((c) => c.msisdn === msisdn);
+}
+
+function findCustomerByIdOrMSISDN(value) {
+  return db
+    .getCustomers()
+    .find((c) => c.id === value || c.msisdn === value);
+}
+
+function findTicket(ticketNo) {
+  return db.getTickets().find((t) => t.ticketNo === ticketNo);
+}
+
+function auth(req, res, next) {
+  const token = req.headers.authorization || req.headers.authcode;
+
+  if (!token || !token.trim()) {
+    return res.status(401).json({
+      error: "Unauthorized",
+      hint: "Provide Authorization header",
+    });
+  }
+
+  next();
+}
+
+// ─────────────────────────────────────────────────────────────
+// Health
+// ─────────────────────────────────────────────────────────────
+app.get("/health", (req, res) => {
   res.json({
-    name: "Telco CRUD API",
-    version: "1.0.0",
-    status: "running",
-    endpoints: [
-      "GET    /health",
-      "GET    /customers",
-      "GET    /customers/:msisdn",
-      "POST   /customers",
-      "PATCH  /customers/:msisdn",
-      "DELETE /customers/:msisdn",
-      "GET    /customers/:msisdn/issues",
-      "GET    /customers/:msisdn/issues/:issueId",
-      "POST   /customers/:msisdn/issues",
-      "PATCH  /customers/:msisdn/issues/:issueId",
-    ],
+    status: "ok",
+    uptime: process.uptime(),
+    customers: db.getCustomers().length,
+    tickets: db.getTickets().length,
+    timestamp: now(),
   });
 });
 
-// ─────────────────────────────────────────────
-// ROUTE: Health Check
-// GET /health
-// ─────────────────────────────────────────────
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+// ─────────────────────────────────────────────────────────────
+// Customers
+// ─────────────────────────────────────────────────────────────
+app.get("/customers", auth, (req, res) => {
+  const { msisdn } = req.query;
+  const customers = db.getCustomers();
 
-// ─────────────────────────────────────────────
-// ROUTE: List All Customers OR Single by MSISDN query param
-// GET /customers              → all customers
-// GET /customers?msisdn=017.. → single customer object
-// ─────────────────────────────────────────────
-app.get("/customers", (req, res) => {
-  const db = readDB();
-
-  if (req.query.msisdn) {
-    // FIX: validate query param MSISDN too
-    if (!isValidMSISDN(req.query.msisdn)) {
+  if (msisdn) {
+    if (!isValidMSISDN(msisdn)) {
       return res.status(400).json({ error: "Invalid MSISDN format" });
     }
-    const customer = db.customers.find((c) => c.msisdn === req.query.msisdn);
+
+    const customer = findCustomerByMSISDN(msisdn);
+
     if (!customer) {
-      return res.status(404).json({ error: "Customer not found", msisdn: req.query.msisdn });
+      return res.status(404).json({ error: "Customer not found" });
     }
+
     return res.json(customer);
   }
 
-  res.json({ count: db.customers.length, customers: db.customers });
+  res.json({
+    total: customers.length,
+    customers,
+  });
 });
 
-// ─────────────────────────────────────────────
-// ROUTE: Get Single Customer by MSISDN
-// GET /customers/:msisdn
-// ─────────────────────────────────────────────
-app.get("/customers/:msisdn", (req, res) => {
-  // FIX: validate MSISDN
-  if (!isValidMSISDN(req.params.msisdn)) {
-    return res.status(400).json({ error: "Invalid MSISDN format" });
-  }
-
-  const db = readDB();
-  const customer = db.customers.find((c) => c.msisdn === req.params.msisdn);
+app.get("/customers/:id", auth, (req, res) => {
+  const customer = findCustomerByIdOrMSISDN(req.params.id);
 
   if (!customer) {
-    return res.status(404).json({ error: "Customer not found", msisdn: req.params.msisdn });
+    return res.status(404).json({ error: "Customer not found" });
   }
 
   res.json(customer);
 });
 
-// ─────────────────────────────────────────────
-// ROUTE: Create Customer
-// POST /customers
-// Body: { customer_name, msisdn, package_name, package_type,
-//         data_quota_mb, validity_days, current_balance }
-// ─────────────────────────────────────────────
-app.post("/customers", (req, res) => {
+app.post("/customers", auth, (req, res) => {
   const {
     customer_name,
     msisdn,
@@ -160,26 +315,30 @@ app.post("/customers", (req, res) => {
     current_balance,
   } = req.body;
 
-  if (!customer_name || !msisdn || !package_name) {
+  if (!customer_name || !msisdn) {
     return res.status(400).json({
-      error: "Required fields: customer_name, msisdn, package_name",
+      error: "customer_name and msisdn are required",
     });
   }
 
-  // FIX: validate MSISDN in body too
   if (!isValidMSISDN(msisdn)) {
-    return res.status(400).json({ error: "Invalid MSISDN format" });
+    return res.status(400).json({
+      error: "Invalid MSISDN format",
+    });
   }
 
-  const db = readDB();
+  const database = readDB();
 
-  const duplicate = db.customers.find((c) => c.msisdn === msisdn);
-  if (duplicate) {
-    return res.status(409).json({ error: "MSISDN already registered" });
+  const exists = database.customers.find((c) => c.msisdn === msisdn);
+
+  if (exists) {
+    return res.status(409).json({
+      error: "MSISDN already exists",
+    });
   }
 
-  const newCustomer = {
-    id: "cust-" + randomUUID().split("-")[0],
+  const customer = {
+    id: generateCustomerId(),
     customer_name,
     msisdn,
     package_name: package_name || "Basic Prepaid",
@@ -189,33 +348,27 @@ app.post("/customers", (req, res) => {
     current_balance: current_balance || 0,
     last_flexiload_date: null,
     last_trxid: null,
-    reported_issues: [],
+    ticket_ids: [],
   };
 
-  db.customers.push(newCustomer);
-  writeDB(db);
+  database.customers.push(customer);
+  db.save(database);
 
-  res.status(201).json({ message: "Customer created", customer: newCustomer });
+  res.status(201).json({
+    message: "Customer created",
+    customer,
+  });
 });
 
-// ─────────────────────────────────────────────
-// ROUTE: Update Customer Details
-// PATCH /customers/:msisdn
-// Body: any subset of updatable fields
-// ─────────────────────────────────────────────
-app.patch("/customers/:msisdn", (req, res) => {
-  // FIX: validate MSISDN
-  if (!isValidMSISDN(req.params.msisdn)) {
-    return res.status(400).json({ error: "Invalid MSISDN format" });
-  }
+app.patch("/customers/:id", auth, (req, res) => {
+  const database = readDB();
 
-  const db = readDB();
-  const customerIndex = db.customers.findIndex(
-    (c) => c.msisdn === req.params.msisdn
+  const customerIndex = database.customers.findIndex(
+    (c) => c.id === req.params.id || c.msisdn === req.params.id
   );
 
   if (customerIndex === -1) {
-    return res.status(404).json({ error: "Customer not found", msisdn: req.params.msisdn });
+    return res.status(404).json({ error: "Customer not found" });
   }
 
   const ALLOWED_FIELDS = [
@@ -229,244 +382,330 @@ app.patch("/customers/:msisdn", (req, res) => {
     "last_trxid",
   ];
 
-  const updates = {};
   for (const field of ALLOWED_FIELDS) {
     if (req.body[field] !== undefined) {
-      updates[field] = req.body[field];
+      database.customers[customerIndex][field] = req.body[field];
     }
   }
 
-  if (Object.keys(updates).length === 0) {
-    return res.status(400).json({ error: "No valid fields provided for update" });
-  }
-
-  db.customers[customerIndex] = {
-    ...db.customers[customerIndex],
-    ...updates,
-  };
-
-  writeDB(db);
+  db.save(database);
 
   res.json({
     message: "Customer updated",
-    customer: db.customers[customerIndex],
+    customer: database.customers[customerIndex],
   });
 });
 
-// ─────────────────────────────────────────────
-// ROUTE: Delete Customer
-// DELETE /customers/:msisdn
-// ─────────────────────────────────────────────
-app.delete("/customers/:msisdn", (req, res) => {
-  // FIX: validate MSISDN
-  const msisdn = req.params.msisdn;
-  if (!isValidMSISDN(req.params.msisdn)) {
-    return res.status(400).json({ error: "Invalid MSISDN format ", msisdn });
-  }
+app.delete("/customers/:id", auth, (req, res) => {
+  const database = readDB();
 
-  const db = readDB();
-  const index = db.customers.findIndex((c) => c.msisdn === req.params.msisdn);
-
-  if (index === -1) {
-    return res.status(404).json({ error: "Customer not found" });
-  }
-
-  const removed = db.customers.splice(index, 1);
-  writeDB(db);
-
-  res.json({ message: "Customer deleted", customer: removed[0] });
-});
-
-// ─────────────────────────────────────────────
-// ROUTE: Get All Issues for a Customer
-// GET /customers/:msisdn/issues
-// ─────────────────────────────────────────────
-app.get("/customers/:msisdn/issues", (req, res) => {
-  // FIX: validate MSISDN
-  if (!isValidMSISDN(req.params.msisdn)) {
-    return res.status(400).json({ error: "Invalid MSISDN format" });
-  }
-
-  const db = readDB();
-  const customer = db.customers.find((c) => c.msisdn === req.params.msisdn);
-
-  if (!customer) {
-    return res.status(404).json({ error: "Customer not found", msisdn: req.params.msisdn });
-  }
-
-  res.json({
-    msisdn: customer.msisdn,
-    customer_name: customer.customer_name,
-    total_issues: customer.reported_issues.length,
-    issues: customer.reported_issues,
-  });
-});
-
-// ─────────────────────────────────────────────
-// ROUTE: Get Single Issue
-// GET /customers/:msisdn/issues/:issueId
-// ─────────────────────────────────────────────
-app.get("/customers/:msisdn/issues/:issueId", (req, res) => {
-  // FIX: validate MSISDN
-  if (!isValidMSISDN(req.params.msisdn)) {
-    return res.status(400).json({ error: "Invalid MSISDN format" });
-  }
-
-  const db = readDB();
-  const customer = db.customers.find((c) => c.msisdn === req.params.msisdn);
-
-  if (!customer) {
-    return res.status(404).json({ error: "Customer not found", msisdn: req.params.msisdn });
-  }
-
-  const issue = customer.reported_issues.find(
-    (i) => i.issue_id === req.params.issueId
-  );
-
-  if (!issue) {
-    return res.status(404).json({ error: "Issue not found" });
-  }
-
-  res.json(issue);
-});
-
-// ─────────────────────────────────────────────
-// ROUTE: Log a Complaint
-// POST /customers/:msisdn/issues
-// Body: { issue_type, description }
-// issue_type: "billing" | "network" | "data" | "recharge" | "other"
-// ─────────────────────────────────────────────
-app.post("/customers/:msisdn/issues", (req, res) => {
-  // FIX: validate MSISDN
-  if (!isValidMSISDN(req.params.msisdn)) {
-    return res.status(400).json({ error: "Invalid MSISDN format" });
-  }
-
-  const { issue_type, description } = req.body;
-  const VALID_ISSUE_TYPES = ["billing", "network", "data", "recharge", "other"];
-
-  if (!issue_type || !description) {
-    return res.status(400).json({
-      error: "Required fields: issue_type, description",
-    });
-  }
-
-  if (!VALID_ISSUE_TYPES.includes(issue_type)) {
-    return res.status(400).json({
-      error: `issue_type must be one of: ${VALID_ISSUE_TYPES.join(", ")}`,
-    });
-  }
-
-  const db = readDB();
-  const customerIndex = db.customers.findIndex(
-    (c) => c.msisdn === req.params.msisdn
+  const customerIndex = database.customers.findIndex(
+    (c) => c.id === req.params.id || c.msisdn === req.params.id
   );
 
   if (customerIndex === -1) {
     return res.status(404).json({ error: "Customer not found" });
   }
 
-  const newIssue = {
-    issue_id: "ISS-" + randomUUID().split("-")[0].toUpperCase(),
-    issue_type,
-    description,
-    status: "open",
-    reported_at: new Date().toISOString(),
+  const customer = database.customers[customerIndex];
+
+  database.tickets = database.tickets.filter(
+    (t) => t.msisdn !== customer.msisdn
+  );
+
+  database.customers.splice(customerIndex, 1);
+
+  db.save(database);
+
+  res.json({
+    message: "Customer and related tickets deleted",
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Ticket Categories
+// ─────────────────────────────────────────────────────────────
+app.get("/b2bSC_getCatagories/v2", auth, (req, res) => {
+  res.json(db.getCategories());
+});
+
+app.post("/b2bSC_getCatagories/v2", auth, (req, res) => {
+  res.json(db.getCategories());
+});
+
+// ─────────────────────────────────────────────────────────────
+// Create Ticket
+// ─────────────────────────────────────────────────────────────
+app.post("/b2bSC_raiseTicket/v1", auth, (req, res) => {
+  const {
+    msisdn,
+    summary,
+    ticketType,
+    service,
+    category,
+    subCat,
+    subCatName,
+    title,
+    callBackNumber,
+    priority,
+    supportDocsList,
+  } = req.body;
+
+  if (!msisdn || !summary) {
+    return res.status(400).json({
+      statusCode: "1",
+      statusMessage: "msisdn and summary are required",
+    });
+  }
+
+  if (!isValidMSISDN(msisdn)) {
+    return res.status(400).json({
+      statusCode: "1",
+      statusMessage: "Invalid MSISDN format",
+    });
+  }
+
+  const database = readDB();
+
+  const customer = database.customers.find(
+    (c) => c.msisdn === msisdn
+  );
+
+  if (!customer) {
+    return res.status(404).json({
+      statusCode: "1",
+      statusMessage: "Customer not found",
+    });
+  }
+
+  const ticket = {
+    ticketNo: generateTicketNo(),
+    ticketType: ticketType || "Complaint",
+    service: service || "Mobility",
+    category: category || "General",
+    subCat: subCat || "",
+    subCatName: subCatName || "",
+    title: title || "Customer Support Request",
+    summary,
+    priority: priority || "Medium",
+    status: "Open",
+    msisdn,
+    contractId: customer.id,
+    callBackNumber: callBackNumber || msisdn,
+    description: summary,
+    notes: [],
+    attachments: supportDocsList || [],
+    createdDate: now(),
+    modifiedDate: now(),
   };
 
-  db.customers[customerIndex].reported_issues.push(newIssue);
-  writeDB(db);
+  database.tickets.push(ticket);
+  customer.ticket_ids.push(ticket.ticketNo);
+
+  db.save(database);
 
   res.status(201).json({
-    message: "Issue logged successfully",
-    issue: newIssue,
-    msisdn: db.customers[customerIndex].msisdn,
-    customer_name: db.customers[customerIndex].customer_name,
+    statusCode: "0",
+    statusMessage: "success",
+    ticketNumber: ticket.ticketNo,
+    ticket,
   });
 });
 
-// ─────────────────────────────────────────────
-// ROUTE: Update Issue Status
-// PATCH /customers/:msisdn/issues/:issueId
-// Body: { status } → "open" | "in_progress" | "resolved" | "closed"
-// ─────────────────────────────────────────────
-app.patch("/customers/:msisdn/issues/:issueId", (req, res) => {
-  // FIX: validate MSISDN
-  if (!isValidMSISDN(req.params.msisdn)) {
-    return res.status(400).json({ error: "Invalid MSISDN format" });
+// ─────────────────────────────────────────────────────────────
+// Ticket CRUD
+// ─────────────────────────────────────────────────────────────
+app.get("/tickets", auth, (req, res) => {
+  const { msisdn } = req.query;
+
+  let tickets = db.getTickets();
+
+  if (msisdn) {
+    tickets = tickets.filter((t) => t.msisdn === msisdn);
   }
 
-  const { status } = req.body;
-  const VALID_STATUSES = ["open", "in_progress", "resolved", "closed"];
+  res.json({
+    total: tickets.length,
+    tickets,
+  });
+});
 
-  if (!status || !VALID_STATUSES.includes(status)) {
-    return res.status(400).json({
-      error: `status must be one of: ${VALID_STATUSES.join(", ")}`,
+app.get("/tickets/:ticketNo", auth, (req, res) => {
+  const ticket = findTicket(req.params.ticketNo);
+
+  if (!ticket) {
+    return res.status(404).json({
+      error: "Ticket not found",
     });
   }
 
-  const db = readDB();
-  const customerIndex = db.customers.findIndex(
-    (c) => c.msisdn === req.params.msisdn
+  res.json(ticket);
+});
+
+app.patch("/tickets/:ticketNo", auth, (req, res) => {
+  const database = readDB();
+
+  const ticketIndex = database.tickets.findIndex(
+    (t) => t.ticketNo === req.params.ticketNo
   );
 
-  if (customerIndex === -1) {
-    return res.status(404).json({ error: "Customer not found" });
+  if (ticketIndex === -1) {
+    return res.status(404).json({
+      error: "Ticket not found",
+    });
   }
 
-  const issueIndex = db.customers[customerIndex].reported_issues.findIndex(
-    (i) => i.issue_id === req.params.issueId
-  );
+  const ticket = database.tickets[ticketIndex];
 
-  if (issueIndex === -1) {
-    return res.status(404).json({ error: "Issue not found" });
+  if (req.body.status) {
+    if (!VALID_TICKET_STATUS.includes(req.body.status)) {
+      return res.status(400).json({
+        error: `Invalid status. Allowed: ${VALID_TICKET_STATUS.join(", ")}`,
+      });
+    }
+
+    ticket.status = req.body.status;
   }
 
-  db.customers[customerIndex].reported_issues[issueIndex].status = status;
-  writeDB(db);
+  if (req.body.priority) {
+    if (!VALID_PRIORITY.includes(req.body.priority)) {
+      return res.status(400).json({
+        error: `Invalid priority. Allowed: ${VALID_PRIORITY.join(", ")}`,
+      });
+    }
+
+    ticket.priority = req.body.priority;
+  }
+
+  if (req.body.note) {
+    ticket.notes.push({
+      date: now(),
+      author: "api-agent",
+      text: req.body.note,
+    });
+  }
+
+  ticket.modifiedDate = now();
+
+  db.save(database);
 
   res.json({
-    message: "Issue status updated",
-    issue: db.customers[customerIndex].reported_issues[issueIndex],
+    message: "Ticket updated",
+    ticket,
   });
 });
 
-// ─────────────────────────────────────────────
-// FIX: Error handler BEFORE 404 fallback
-// Catches malformed JSON bodies and other thrown errors
-// ─────────────────────────────────────────────
+app.delete("/tickets/:ticketNo", auth, (req, res) => {
+  const database = readDB();
+
+  const ticketIndex = database.tickets.findIndex(
+    (t) => t.ticketNo === req.params.ticketNo
+  );
+
+  if (ticketIndex === -1) {
+    return res.status(404).json({
+      error: "Ticket not found",
+    });
+  }
+
+  const ticket = database.tickets[ticketIndex];
+
+  database.tickets.splice(ticketIndex, 1);
+
+  const customer = database.customers.find(
+    (c) => c.msisdn === ticket.msisdn
+  );
+
+  if (customer) {
+    customer.ticket_ids = customer.ticket_ids.filter(
+      (id) => id !== ticket.ticketNo
+    );
+  }
+
+  db.save(database);
+
+  res.json({
+    message: `Ticket ${ticket.ticketNo} deleted`,
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// SOA-Compatible Endpoint
+// ─────────────────────────────────────────────────────────────
+app.get(
+  "/DigitalService/TroubleTicketRestService/troubleTicket",
+  auth,
+  (req, res) => {
+    const { ticketNo } = req.query;
+
+    if (!ticketNo) {
+      return res.status(400).json({
+        error: "ticketNo query param is required",
+      });
+    }
+
+    const ticket = findTicket(ticketNo);
+
+    if (!ticket) {
+      return res.status(404).json({
+        error: "Ticket not found",
+      });
+    }
+
+    res.json([
+      {
+        ticketNo: ticket.ticketNo,
+        ticketType: ticket.ticketType,
+        priority: ticket.priority,
+        status: ticket.status,
+        description: ticket.description,
+        createdDate: ticket.createdDate,
+        modifiedDate: ticket.modifiedDate,
+        accountId: [ticket.contractId],
+        publicIdentifier: [ticket.msisdn],
+        category: [
+          {
+            id: ticket.subCat,
+            name: ticket.subCatName,
+            ticketType: ticket.ticketType,
+          },
+        ],
+        note: ticket.notes,
+        attachment: ticket.attachments,
+      },
+    ]);
+  }
+);
+
+// ─────────────────────────────────────────────────────────────
+// Error Handler
+// ─────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   if (err.type === "entity.parse.failed") {
-    return res.status(400).json({ error: "Invalid JSON body" });
+    return res.status(400).json({
+      error: "Invalid JSON body",
+    });
   }
-  console.error("Unhandled error:", err.message);
-  res.status(500).json({ error: "Internal server error" });
+
+  console.error(err);
+
+  res.status(500).json({
+    error: "Internal server error",
+  });
 });
 
-// ─────────────────────────────────────────────
-// FIX: 404 fallback LAST — after error handler
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// 404 Fallback
+// ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
+  res.status(404).json({
+    error: "Route not found",
+  });
 });
 
-// ─────────────────────────────────────────────
-// Start Server
-// FIX: bind to 0.0.0.0 so it's publicly accessible (not just localhost)
-// ─────────────────────────────────────────────
-const PORT = process.env.PORT || 8000;
+// ─────────────────────────────────────────────────────────────
+// Server
+// ─────────────────────────────────────────────────────────────
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`\n🚀 Telco API running on http://0.0.0.0:${PORT}`);
-  console.log(`📋 Routes:`);
-  console.log(`   GET    /`);
-  console.log(`   GET    /health`);
-  console.log(`   GET    /customers`);
-  console.log(`   GET    /customers/:msisdn`);
-  console.log(`   POST   /customers`);
-  console.log(`   PATCH  /customers/:msisdn`);
-  console.log(`   DELETE /customers/:msisdn`);
-  console.log(`   GET    /customers/:msisdn/issues`);
-  console.log(`   GET    /customers/:msisdn/issues/:issueId`);
-  console.log(`   POST   /customers/:msisdn/issues`);
-  console.log(`   PATCH  /customers/:msisdn/issues/:issueId\n`);
+  console.log(`\n🚀 Unified Telco API running on port ${PORT}`);
 });
